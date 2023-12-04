@@ -1,0 +1,227 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id       Int       @id @default(autoincrement())
+  role     String    @unique
+  Account  Account[]
+  createAt DateTime  @default(now())
+  updateAt DateTime  @updatedAt
+}
+
+model Account {
+  id            Int             @id @default(autoincrement())
+  avata         String?
+  username      String
+  isActive      Boolean         @default(false)
+  hashPassword  String
+  isBan         Boolean         @default(false)
+  Role          Role?           @relation(fields: [roleId], references: [id])
+  fullName      String
+  email         String          @unique
+  phoneNumber   String?
+  point         String?
+  createAt      DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  roleId        Int             @default(1)
+  Notification  Notification[]
+  Order         Order[]
+  Rating        Rating[]
+  Feedback      Feedback[]
+  VerifyToken   VerifyToken[]
+  resetPassCode resetPassCode[]
+}
+
+model resetPassCode {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  account   Account  @relation(fields: [accountId], references: [id])
+  accountId Int
+  isActive  Boolean  @default(false)
+  createAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerifyToken {
+  id        String   @id @default(uuid())
+  type      Int      @default(1)
+  account   Account? @relation(fields: [accountId], references: [id])
+  isActive  Boolean  @default(false)
+  createAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  accountId Int
+}
+
+model Notification {
+  id       Int       @id @default(autoincrement())
+  type     Int
+  title    String    @unique
+  content  String
+  Account  Account[]
+  createAt DateTime  @default(now())
+  updateAt DateTime  @updatedAt
+}
+
+model Species {
+  id          Int       @id @default(autoincrement())
+  image       String?
+  name        String    @unique
+  isActive    Boolean   @default(true)
+  description String
+  createAt    DateTime  @default(now())
+  updateAt    DateTime  @updatedAt
+  Bird        Bird[]
+  Nest        Nest[]
+  Discount    Discount? @relation(fields: [discountId], references: [id])
+  discountId  Int?
+}
+
+model Galery {
+  id          Int      @id @default(autoincrement())
+  image       String
+  description String
+  Bird        Bird?    @relation(fields: [birdId], references: [id])
+  birdId      Int?
+  createAt    DateTime @default(now())
+  updateAt    DateTime @updatedAt
+}
+
+model Bird {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  imageUrl    String?     @db.VarChar(Max)
+  size        Int
+  age         Int         @default(0)
+  galery      Galery[]
+  price       Int
+  gender      Boolean
+  Species     Species?    @relation(fields: [speciesId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  speciesId   Int?
+  description String
+  trophy      String?
+  createAt    DateTime    @default(now())
+  updateAt    DateTime    @updatedAt
+  OrderItem   OrderItem[]
+  Discount    Discount[]
+  discountId  Int?
+  nestMother  Nest[]      @relation("mother")
+  nestFather  Nest[]      @relation("father")
+}
+
+//edge status : 
+model Nest {
+  id           Int         @id @default(autoincrement())
+  imageUrl     String?
+  type         Int
+  motherBird   Bird        @relation("mother", fields: [birdMotherId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  fatherBird   Bird        @relation("father", fields: [birdFatherId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  name         String      @unique
+  price        Int         @default(0)
+  Species      Species?    @relation(fields: [speciesId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  speciesId    Int?
+  description  String
+  quantity     Int
+  edgeStatus   Int
+  OrderItem    OrderItem[]
+  Discount     Discount[]
+  discountId   Int?
+  layDate      DateTime
+  birthDate    DateTime
+  status       Boolean     @default(true)
+  birdMotherId Int         @unique
+  birdFatherId Int         @unique
+  createAt     DateTime    @default(now())
+  updateAt     DateTime    @updatedAt
+}
+
+model OrderItem {
+  type     Int
+  id       Int      @id @default(autoincrement())
+  Bird     Bird?    @relation(fields: [birdId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  birdId   Int?
+  Nest     Nest?    @relation(fields: [nestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  nestId   Int?
+  Order    Order?   @relation(fields: [orderId], references: [id])
+  orderId  Int?
+  createAt DateTime @default(now())
+  updateAt DateTime @updatedAt
+}
+
+//NOTE - Discount 
+//mesureType money or percent
+//type giam gia theo san pham or species
+model Discount {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  type        Int
+  mesureType  Int
+  amount      Int
+  startDate   DateTime
+  endDate     DateTime
+  lower_bound Int?
+  upper_bound Int?
+  Species     Species[]
+  Bird        Bird[]
+  Nest        Nest[]
+  createAt    DateTime  @default(now())
+  updateAt    DateTime  @updatedAt
+  Order       Order[]
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  status     Int
+  discount   Discount[]
+  OrderItem  OrderItem[]
+  Account    Account?    @relation(fields: [accountId], references: [id])
+  accountId  Int?
+  History    History?
+  Delivery   Delivery    @relation(fields: [deliveryId], references: [id])
+  deliveryId Int         @unique
+  createAt   DateTime    @default(now())
+  updateAt   DateTime    @updatedAt
+}
+
+model Delivery {
+  id           Int      @id @default(autoincrement())
+  status       Int
+  estimateDate DateTime
+  Order        Order?
+  createAt     DateTime @default(now())
+  updateAt     DateTime @updatedAt
+}
+
+model History {
+  id          Int      @id @default(autoincrement())
+  Order       Order    @relation(fields: [orderId], references: [id])
+  orderId     Int      @unique
+  dateOrder   DateTime @default(now())
+  dateReceive DateTime
+  datePayment DateTime
+  createAt    DateTime @default(now())
+  updateAt    DateTime @updatedAt
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  score     Float
+  account   Account? @relation(fields: [accountId], references: [id])
+  accountId Int?
+  createAt  DateTime @default(now())
+  updateAt  DateTime @updatedAt
+}
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  feedback  String
+  account   Account? @relation(fields: [accountId], references: [id])
+  createAt  DateTime @default(now())
+  updateAt  DateTime @updatedAt
+  accountId Int?
+}
